@@ -307,7 +307,58 @@
         </div>
       </div>
 
-      <!-- Section 7: CNC Stock & Nesting Settings -->
+      <!-- Section 7: 3D Studio & Lighting Rig -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">
+            <span>💡</span> 3D Studio & Lighting
+          </div>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-content">
+          <div class="control-row">
+            <label class="control-label">Lighting Style</label>
+            <select id="lighting-preset" class="select-input">
+              <option value="etsy_rake">Architectural Rake (Etsy Showroom)</option>
+              <option value="top_spotlight">Top Ceiling Downlight</option>
+              <option value="studio_warm">Warm 3-Point Studio</option>
+              <option value="high_contrast">High-Contrast Deep Shadows</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Spotlight Sweep Angle</span>
+              <span id="light-angle-val" class="control-val">-50°</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="light-angle" class="slider" min="-90" max="90" step="5" value="-50" />
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Light Throw / Intensity</span>
+              <span id="light-intensity-val" class="control-val">2.6</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="light-intensity" class="slider" min="1.0" max="4.5" step="0.1" value="2.6" />
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Fin Edge Highlight / Sheen</span>
+              <span id="edge-contrast-val" class="control-val">1.10</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="edge-contrast" class="slider" min="0.7" max="1.6" step="0.05" value="1.10" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 8: CNC Stock & Nesting Settings -->
       <div class="section">
         <div class="section-header">
           <div class="section-title">
@@ -350,6 +401,14 @@
 
       <!-- Viewport Controls Toolbar -->
       <div class="viewport-floating-bar">
+        <!-- Camera Presets -->
+        <div style="display:flex; align-items:center; gap:4px; margin-right:8px; border-right:1px solid var(--border-color); padding-right:8px;">
+          <button class="viewport-btn cam-btn active" data-cam="showroom" title="Showroom 3D View">🏢 3/4</button>
+          <button class="viewport-btn cam-btn" data-cam="front" title="Front Elevation">👁️ Front</button>
+          <button class="viewport-btn cam-btn" data-cam="left_rake" title="Rake Lighting Angle">📐 Rake</button>
+          <button class="viewport-btn cam-btn" data-cam="closeup" title="Close-Up">🔍 Macro</button>
+        </div>
+
         <button class="viewport-btn active" data-mode="assembled">
           <span>🏢</span> Assembled
         </button>

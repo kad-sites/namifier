@@ -28,8 +28,8 @@ export function calculateStatsAndWarnings(slices, nestedResult, params) {
       let slicePerimeter = 0;
       for (let i = 0; i < pts.length; i++) {
         const next = pts[(i + 1) % pts.length];
-        const dx = next.x - pts.x;
-        const dy = next.y - pts.y;
+        const dx = next.x - pts[i].x;
+        const dy = next.y - pts[i].y;
         slicePerimeter += Math.sqrt(dx * dx + dy * dy);
       }
       totalCutMeters += slicePerimeter / 1000;

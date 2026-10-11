@@ -251,6 +251,55 @@ export class UIController {
         this.callbacks.onExplodeChange(parseFloat(e.target.value));
       });
     }
+
+    // Camera preset views
+    document.querySelectorAll('.cam-btn[data-cam]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cam-btn[data-cam]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (this.callbacks.onCameraViewChange) {
+          this.callbacks.onCameraViewChange(btn.dataset.cam);
+        }
+      });
+    });
+
+    // Lighting studio controls
+    const lightPresetSelect = document.getElementById('lighting-preset');
+    if (lightPresetSelect && this.callbacks.onLightingPresetChange) {
+      lightPresetSelect.addEventListener('change', (e) => {
+        this.callbacks.onLightingPresetChange(e.target.value);
+      });
+    }
+
+    const lightAngleSlider = document.getElementById('light-angle');
+    if (lightAngleSlider && this.callbacks.onLightAngleChange) {
+      lightAngleSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        const disp = document.getElementById('light-angle-val');
+        if (disp) disp.textContent = `${val}°`;
+        this.callbacks.onLightAngleChange(val);
+      });
+    }
+
+    const lightIntensitySlider = document.getElementById('light-intensity');
+    if (lightIntensitySlider && this.callbacks.onLightIntensityChange) {
+      lightIntensitySlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        const disp = document.getElementById('light-intensity-val');
+        if (disp) disp.textContent = val.toFixed(1);
+        this.callbacks.onLightIntensityChange(val);
+      });
+    }
+
+    const edgeContrastSlider = document.getElementById('edge-contrast');
+    if (edgeContrastSlider && this.callbacks.onEdgeContrastChange) {
+      edgeContrastSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        const disp = document.getElementById('edge-contrast-val');
+        if (disp) disp.textContent = val.toFixed(2);
+        this.callbacks.onEdgeContrastChange(val);
+      });
+    }
   }
 
   bindExportActions() {
