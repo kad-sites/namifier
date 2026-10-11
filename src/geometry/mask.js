@@ -160,7 +160,16 @@ export class LogoMaskGenerator {
       path.draw(this.ctx);
       this.ctx.restore();
     } else {
-      // Canvas text measurement to fit proportionally
+      // Ensure web font is loaded before measuring and drawing
+      if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
+        try {
+          await document.fonts.load(`${bold ? 'bold ' : ''}100px ${fontFamily}`);
+          await document.fonts.ready;
+        } catch (e) {
+          // Fallback to system font
+        }
+      }
+
       this.ctx.save();
       this.ctx.font = `${bold ? 'bold ' : ''}100px ${fontFamily}`;
       const metrics = this.ctx.measureText(text);
