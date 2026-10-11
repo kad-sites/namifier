@@ -25,7 +25,7 @@ function applyMovingAverage(heights, windowSize) {
 }
 
 /**
- * Slices the heightfield into closed 2D rib profiles.
+ * Slices the heightfield into closed 2D rib profiles with planar logo emboss and safe spine slots.
  */
 export function generateSlices(maskSampler, params) {
   const {
@@ -33,14 +33,15 @@ export function generateSlices(maskSampler, params) {
     height = 400,
     sheetThickness = 6,
     gap = 4,
-    sliceDirection = 'vertical', // 'vertical' (along X) or 'horizontal' (along Y)
-    baseDepth = 20,
-    embossDepth = 40,
+    sliceDirection = 'vertical',
+    baseDepth = 25,
+    embossDepth = 50,
     invertEmboss = false,
+    amplitude = 25,
     surfaceSmoothing = 3,
-    backProfile = 'flat', // 'flat' or 'offset'
+    backProfile = 'flat',
     simplifyTolerance = 0.1,
-    sampleResolution = 1.0, // 1 mm sampling step
+    sampleResolution = 1.0,
     spineEnabled = true,
     numRails = 2,
     slotDepth = 15,
@@ -51,10 +52,8 @@ export function generateSlices(maskSampler, params) {
   const primaryDim = (sliceDirection === 'vertical') ? width : height;
   const ribLength = (sliceDirection === 'vertical') ? height : width;
 
-  // Number of slices = primaryDim / pitch
   const numSlices = Math.max(1, Math.floor(primaryDim / pitch));
 
-  // Determine slot positions along rib length
   const spineSlots = getRibSlotIntervals(ribLength, {
     spineEnabled,
     numRails,
@@ -66,11 +65,13 @@ export function generateSlices(maskSampler, params) {
   const slices = [];
   const numSamples = Math.ceil(ribLength / sampleResolution) + 1;
 
+  // Maximum wave peak for planar emboss reference
+  const maxWavePeak = baseDepth + Math.abs(amplitude);
+  const targetLogoPlane = maxWavePeak + embossDepth;
+
   for (let i = 0; i < numSlices; i++) {
-    // Position of this slice in sign coordinates
     const p = i * pitch + sheetThickness / 2;
 
-    // Sample the top profile along ribLength
     const topHeights = new Float32Array(numSamples);
     const backHeights = new Float32Array(numSamples);
     const sCoords = new Float32Array(numSamples);
@@ -79,7 +80,6 @@ export function generateSlices(maskSampler, params) {
       const s = Math.min(ribLength, sIdx * sampleResolution);
       sCoords[sIdx] = s;
 
-      // Coordinate mapping
       let x, y;
       if (sliceDirection === 'vertical') {
         x = p;
@@ -89,21 +89,29 @@ export function generateSlices(maskSampler, params) {
         y = p;
       }
 
-      // Sample base wave
+      // Base parametric wave surface
       const waveZ = evaluateBaseWave(x, y, params);
+      const waveSurface = baseDepth + waveZ;
 
-      // Sample mask (u, v in 0..1, with v inverted to match upright canvas text)
+      // Sample mask (u in 0..1, v inverted so top of canvas is top of sign)
       const u = Math.max(0, Math.min(1, x / width));
       const v = Math.max(0, Math.min(1, 1.0 - (y / height)));
       const maskVal = maskSampler ? maskSampler(u, v) : 0;
 
-      // Calculate embossed height
-      const embossFactor = invertEmboss ? (1.0 - maskVal) : maskVal;
-      const embossZ = embossDepth * embossFactor;
+      let totalZ;
+      if (invertEmboss) {
+        // Recessed / carved: cuts down into the wave surface smoothly
+        totalZ = waveSurface - embossDepth * maskVal;
+      } else {
+        // Planar architectural emboss:
+        // Mask smoothly blends between the wavy background and a flat, proud letter face
+        // Hermite smoothstep transition eliminates abrupt decreases or rollercoasters
+        const t = maskVal * maskVal * (3.0 - 2.0 * maskVal);
+        totalZ = (1.0 - t) * waveSurface + t * targetLogoPlane;
+      }
 
-      // Total top height: baseDepth ensures minimum material thickness
-      const totalZ = baseDepth + waveZ + embossZ;
-      topHeights[sIdx] = Math.max(3.0, totalZ); // Ensure at least 3mm thickness
+      // Ensure minimum structural thickness of at least 10 mm everywhere
+      topHeights[sIdx] = Math.max(10.0, totalZ);
 
       // Back profile
       if (backProfile === 'offset') {
@@ -113,7 +121,7 @@ export function generateSlices(maskSampler, params) {
       }
     }
 
-    // Apply surface smoothing
+    // Apply surface smoothing filter
     const smoothedTop = applyMovingAverage(topHeights, surfaceSmoothing);
 
     // Build closed 2D polygon in local rib coordinates (s, z)
@@ -133,21 +141,37 @@ export function generateSlices(maskSampler, params) {
       y: backHeights[lastIdx]
     });
 
-    // 3. Bottom profile from s=ribLength down to s=0 (with spine slots)
-    // Sort slots by position descending for bottom edge traversal
+    // 3. Bottom profile from s=ribLength down to s=0 (with safe spine slots)
     const sortedSlots = [...spineSlots].sort((a, b) => b.center - a.center);
 
     let currentS = ribLength;
     for (const slot of sortedSlots) {
       if (slot.start < currentS && slot.end > 0) {
-        // Line to slot end
-        rawPolygon.push({ x: slot.end, y: 0 });
-        // Slot up into the rib by slotDepth
-        rawPolygon.push({ x: slot.end, y: slot.depth });
-        // Across slot
-        rawPolygon.push({ x: slot.start, y: slot.depth });
-        // Down from slot
-        rawPolygon.push({ x: slot.start, y: 0 });
+        // Calculate minimum local rib thickness in the slot zone
+        const idxStart = Math.max(0, Math.min(numSamples - 1, Math.floor(slot.start / sampleResolution)));
+        const idxEnd = Math.max(0, Math.min(numSamples - 1, Math.floor(slot.end / sampleResolution)));
+
+        let minLocalThick = Infinity;
+        for (let k = idxStart; k <= idxEnd; k++) {
+          if (smoothedTop[k] < minLocalThick) minLocalThick = smoothedTop[k];
+        }
+
+        // Safe slot depth:
+        // Guarantee at least 12mm of solid wood ALWAYS remains in front of the slot!
+        // Never allow slot to exceed 50% of the local rib thickness
+        const maxAllowedSlotDepth = Math.max(0, minLocalThick - 12.0);
+        const safeSlotDepth = Math.max(0, Math.min(slot.depth, maxAllowedSlotDepth, minLocalThick * 0.5));
+
+        if (safeSlotDepth >= 3.0) {
+          // Line to slot end
+          rawPolygon.push({ x: slot.end, y: 0 });
+          // Slot up into the rib
+          rawPolygon.push({ x: slot.end, y: safeSlotDepth });
+          // Across slot
+          rawPolygon.push({ x: slot.start, y: safeSlotDepth });
+          // Down from slot
+          rawPolygon.push({ x: slot.start, y: 0 });
+        }
         currentS = slot.start;
       }
     }

@@ -173,8 +173,13 @@ export class LogoMaskGenerator {
 
       this.ctx.font = `${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
       this.ctx.fillStyle = '#ffffff';
+      this.ctx.strokeStyle = '#ffffff';
+      this.ctx.lineWidth = Math.max(2, fontSize * 0.035);
+      this.ctx.lineJoin = 'round';
+      this.ctx.lineCap = 'round';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
+      this.ctx.strokeText(text, w / 2, h / 2);
       this.ctx.fillText(text, w / 2, h / 2);
       this.ctx.restore();
     }
