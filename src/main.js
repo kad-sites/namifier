@@ -80,6 +80,9 @@ class App {
   async handleParamChange({ params, customFont, customImage }) {
     this.currentParams = params;
 
+    // Rescale mask canvas to match exact sign aspect ratio
+    this.maskGenerator.setDimensions(params.width || 1200, params.height || 400);
+
     // Rasterize logo mask
     if (customImage) {
       this.maskGenerator.rasterizeImage(customImage, {
@@ -111,8 +114,8 @@ class App {
 
     this.worker.postMessage({
       maskBuffer,
-      maskWidth: this.maskGenerator.canvasSize,
-      maskHeight: this.maskGenerator.canvasSize,
+      maskWidth: this.maskGenerator.maskWidth,
+      maskHeight: this.maskGenerator.maskHeight,
       params: this.currentParams
     }, maskBuffer ? [maskBuffer] : []);
   }

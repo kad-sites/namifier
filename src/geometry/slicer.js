@@ -92,9 +92,9 @@ export function generateSlices(maskSampler, params) {
       // Sample base wave
       const waveZ = evaluateBaseWave(x, y, params);
 
-      // Sample mask (u, v in 0..1)
+      // Sample mask (u, v in 0..1, with v inverted to match upright canvas text)
       const u = Math.max(0, Math.min(1, x / width));
-      const v = Math.max(0, Math.min(1, y / height));
+      const v = Math.max(0, Math.min(1, 1.0 - (y / height)));
       const maskVal = maskSampler ? maskSampler(u, v) : 0;
 
       // Calculate embossed height

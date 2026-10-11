@@ -1,18 +1,41 @@
 import opentype from 'opentype.js';
 
 /**
- * Manages offscreen rasterization of text, SVG, or images into a blurred 0..1 mask.
+ * Manages offscreen rasterization of text, SVG, or images into a blurred 0..1 mask,
+ * matching the exact physical aspect ratio of the 3D sign to prevent any letter distortion.
  */
 export class LogoMaskGenerator {
-  constructor(size = 1024) {
-    this.canvasSize = size;
+  constructor(defaultWidth = 1200, defaultHeight = 400) {
     this.canvas = document.createElement('canvas');
-    this.canvas.width = size;
-    this.canvas.height = size;
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     this.maskData = null; // Float32Array of normalized values [0..1]
-    this.maskWidth = size;
-    this.maskHeight = size;
+    this.maskWidth = 1536;
+    this.maskHeight = 512;
+    this.setDimensions(defaultWidth, defaultHeight);
+  }
+
+  /**
+   * Resizes offscreen canvas to match the exact aspect ratio of the sign.
+   */
+  setDimensions(signWidth, signHeight) {
+    const maxDim = 1536;
+    const aspect = Math.max(0.1, signWidth / Math.max(1, signHeight));
+
+    let cw, ch;
+    if (aspect >= 1) {
+      cw = maxDim;
+      ch = Math.max(128, Math.round(maxDim / aspect));
+    } else {
+      ch = maxDim;
+      cw = Math.max(128, Math.round(maxDim * aspect));
+    }
+
+    if (this.canvas.width !== cw || this.canvas.height !== ch) {
+      this.canvas.width = cw;
+      this.canvas.height = ch;
+      this.maskWidth = cw;
+      this.maskHeight = ch;
+    }
   }
 
   /**
@@ -29,7 +52,6 @@ export class LogoMaskGenerator {
       let sum = 0;
       let count = 0;
 
-      // Initialize window
       for (let x = -r; x <= r; x++) {
         if (x >= 0 && x < w) {
           sum += src[yOffset + x];
@@ -40,7 +62,6 @@ export class LogoMaskGenerator {
       for (let x = 0; x < w; x++) {
         dest[yOffset + x] = sum / count;
 
-        // Slide window
         const nextX = x + r + 1;
         if (nextX < w) {
           sum += src[yOffset + nextX];
@@ -87,21 +108,19 @@ export class LogoMaskGenerator {
   }
 
   /**
-   * Rasterizes text using either an opentype.js font object or standard Canvas fonts.
+   * Rasterizes text with proportional font scaling, zero distortion, and upright orientation.
    */
   async rasterizeText(text, options = {}) {
     const {
-      font = null, // opentype.js Font object if available
+      font = null,
       fontFamily = 'Impact, sans-serif',
-      fontSizeFraction = 0.55,
-      edgeSoftness = 3,
-      bold = true,
-      scaleX = 1.0,
-      scaleY = 1.0
+      edgeSoftness = 2.0,
+      bold = true
     } = options;
 
-    const w = this.canvasSize;
-    const h = this.canvasSize;
+    const w = this.maskWidth;
+    const h = this.maskHeight;
+
     this.ctx.clearRect(0, 0, w, h);
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, w, h);
@@ -111,34 +130,52 @@ export class LogoMaskGenerator {
       return;
     }
 
+    // Maximum text bounds inside canvas (76% width, 64% height for aesthetic margins)
+    const maxTextW = w * 0.76;
+    const maxTextH = h * 0.64;
+
     if (font && font.getPath) {
       // Use opentype.js vector path rendering
-      const fontSize = w * fontSizeFraction;
-      const path = font.getPath(text, 0, 0, fontSize);
-      const bbox = path.getBoundingBox();
-      const textW = bbox.x2 - bbox.x1;
-      const textH = bbox.y2 - bbox.y1;
+      const testSize = 100;
+      const testPath = font.getPath(text, 0, 0, testSize);
+      const bbox = testPath.getBoundingBox();
+      const rawW = Math.max(1, bbox.x2 - bbox.x1);
+      const rawH = Math.max(1, bbox.y2 - bbox.y1);
 
-      const offsetX = (w - textW * scaleX) / 2 - bbox.x1 * scaleX;
-      const offsetY = (h + textH * scaleY) / 2 - bbox.y2 * scaleY;
+      const scale = Math.min(maxTextW / rawW, maxTextH / rawH);
+      const fontSize = testSize * scale;
+
+      const path = font.getPath(text, 0, 0, fontSize);
+      const scaledBBox = path.getBoundingBox();
+      const textW = scaledBBox.x2 - scaledBBox.x1;
+      const textH = scaledBBox.y2 - scaledBBox.y1;
+
+      // Perfectly center
+      const offsetX = (w - textW) / 2 - scaledBBox.x1;
+      const offsetY = (h + textH) / 2 - scaledBBox.y2;
 
       this.ctx.save();
       this.ctx.translate(offsetX, offsetY);
-      this.ctx.scale(scaleX, scaleY);
       this.ctx.fillStyle = '#ffffff';
       path.draw(this.ctx);
       this.ctx.restore();
     } else {
-      // Canvas text fallback
-      const fontSize = Math.round(w * fontSizeFraction);
+      // Canvas text measurement to fit proportionally
       this.ctx.save();
+      this.ctx.font = `${bold ? 'bold ' : ''}100px ${fontFamily}`;
+      const metrics = this.ctx.measureText(text);
+      const textWidth100 = Math.max(1, metrics.width);
+      const textHeight100 = 75; // Approx cap height for standard fonts
+
+      const scaleByW = maxTextW / textWidth100;
+      const scaleByH = maxTextH / textHeight100;
+      const fontSize = Math.round(100 * Math.min(scaleByW, scaleByH));
+
+      this.ctx.font = `${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
       this.ctx.fillStyle = '#ffffff';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
-      this.ctx.font = `${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
-      this.ctx.translate(w / 2, h / 2);
-      this.ctx.scale(scaleX, scaleY);
-      this.ctx.fillText(text, 0, 0);
+      this.ctx.fillText(text, w / 2, h / 2);
       this.ctx.restore();
     }
 
@@ -152,25 +189,27 @@ export class LogoMaskGenerator {
     const {
       threshold = 128,
       invert = false,
-      edgeSoftness = 3,
-      paddingFraction = 0.1
+      edgeSoftness = 2.0,
+      paddingFraction = 0.12
     } = options;
 
-    const w = this.canvasSize;
-    const h = this.canvasSize;
+    const w = this.maskWidth;
+    const h = this.maskHeight;
     this.ctx.clearRect(0, 0, w, h);
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, w, h);
 
-    const maxDim = w * (1 - 2 * paddingFraction);
+    const maxW = w * (1 - 2 * paddingFraction);
+    const maxH = h * (1 - 2 * paddingFraction);
     const aspect = imageElement.width / imageElement.height;
+
     let drawW, drawH;
-    if (aspect >= 1) {
-      drawW = maxDim;
-      drawH = maxDim / aspect;
+    if (aspect > (maxW / maxH)) {
+      drawW = maxW;
+      drawH = maxW / aspect;
     } else {
-      drawH = maxDim;
-      drawW = maxDim * aspect;
+      drawH = maxH;
+      drawW = maxH * aspect;
     }
 
     const drawX = (w - drawW) / 2;
@@ -182,7 +221,6 @@ export class LogoMaskGenerator {
     const imgData = this.ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      // Calculate luminance
       const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       const alpha = data[i + 3] / 255;
       const val = (lum * alpha >= threshold) ? 255 : 0;
@@ -201,8 +239,8 @@ export class LogoMaskGenerator {
    * Extracts grayscale values from canvas and applies 3-pass Gaussian blur approximation.
    */
   extractAndBlurMask(edgeSoftness) {
-    const w = this.canvasSize;
-    const h = this.canvasSize;
+    const w = this.maskWidth;
+    const h = this.maskHeight;
     const imgData = this.ctx.getImageData(0, 0, w, h).data;
     const raw = new Float32Array(w * h);
 
@@ -210,13 +248,13 @@ export class LogoMaskGenerator {
       raw[j] = imgData[i] / 255.0; // 0..1
     }
 
-    if (edgeSoftness <= 0.5) {
+    if (edgeSoftness <= 0.4) {
       this.maskData = raw;
       return;
     }
 
     // 3 passes of box blur = Gaussian approximation
-    const r = Math.max(1, edgeSoftness * 2.5);
+    const r = Math.max(1, edgeSoftness * 2.2);
     let blurred = this.applyBoxBlur(raw, w, h, r);
     blurred = this.applyBoxBlur(blurred, w, h, r);
     blurred = this.applyBoxBlur(blurred, w, h, r);
@@ -231,8 +269,8 @@ export class LogoMaskGenerator {
     if (!this.maskData) return 0;
     if (u < 0 || u > 1 || v < 0 || v > 1) return 0;
 
-    const w = this.canvasSize;
-    const h = this.canvasSize;
+    const w = this.maskWidth;
+    const h = this.maskHeight;
 
     const x = u * (w - 1);
     const y = v * (h - 1);
