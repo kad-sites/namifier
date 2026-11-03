@@ -195,30 +195,18 @@
                         </div>
                         
                         <div id="base-options">
-                            <!-- Connection Mode Segmented Control -->
+                            <!-- Font Attachment Mode (Matches all dropdowns in panel) -->
                             <div class="control-group">
-                                <label>
-                                    Font Attachment
-                                    <span class="help-text">Choose fused solid or floating clearance gap:</span>
-                                </label>
-                                <div class="segmented-control" id="connection-mode-selector">
-                                    <button type="button" class="segment-btn active" id="btn-mode-fused" data-mode="fused">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                        Connected (Fused)
-                                    </button>
-                                    <button type="button" class="segment-btn" id="btn-mode-gap" data-mode="gap">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v18M8 6l4-3 4 3M8 18l4 3 4-3"></path></svg>
-                                        Clearance Gap
-                                    </button>
-                                </div>
+                                <label>Font Attachment <span class="help-text">How text connects to the base stand:</span></label>
+                                <select id="attachment-mode">
+                                    <option value="fused">Connected (Solid Fused)</option>
+                                    <option value="gap">Clearance Gap (Spacing)</option>
+                                </select>
                             </div>
 
                             <!-- Gap Input (Visible in Clearance Gap mode) -->
                             <div class="control-group" id="group-base-gap" style="display: none;">
-                                <label>
-                                    Gap Height (mm)
-                                    <span class="help-text">Clearance distance between base and font:</span>
-                                </label>
+                                <label>Base-to-Font Gap (mm) <span class="help-text">Clearance distance between base and font:</span></label>
                                 <div class="number-input">
                                     <input type="number" id="base-gap" value="2" min="0.5" max="50" step="0.5">
                                     <div class="number-controls">

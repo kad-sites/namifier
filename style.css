@@ -372,46 +372,6 @@ input[type="text"]:focus, select:focus, input[type="number"]:focus, .number-inpu
     color: var(--text-main);
 }
 
-/* Segmented Control */
-.segmented-control {
-    display: flex;
-    background: #17171a;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 3px;
-    gap: 4px;
-}
-
-.segment-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    padding: 7px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    white-space: nowrap;
-}
-
-.segment-btn:hover {
-    color: var(--text-main);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.segment-btn.active {
-    background: var(--accent);
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
 .btn-text-action {
     background: rgba(10, 132, 255, 0.12);
     border: 1px solid rgba(10, 132, 255, 0.28);

@@ -21,11 +21,10 @@ const targetHeightInput = document.getElementById('target-height');
 const includeBaseInput = document.getElementById('include-base');
 const baseOptions = document.getElementById('base-options');
 const connectFontInput = document.getElementById('connect-font');
+const attachmentModeSelect = document.getElementById('attachment-mode');
 const baseGapInput = document.getElementById('base-gap');
 const baseWidthInput = document.getElementById('base-width');
 const btnFitBase = document.getElementById('btn-fit-base');
-const btnModeFused = document.getElementById('btn-mode-fused');
-const btnModeGap = document.getElementById('btn-mode-gap');
 const groupBaseGap = document.getElementById('group-base-gap');
 const basePaddingInput = document.getElementById('base-padding');
 const baseHeightInput = document.getElementById('base-height');
@@ -74,7 +73,13 @@ function setupNumberControls(inputId, minusId, plusId) {
         } else if (inputId === 'base-gap') {
             const gap = parseFloat(input.value) || 0;
             if (gap <= 0) {
-                updateConnectionModeUI(true);
+                if (attachmentModeSelect) attachmentModeSelect.value = 'fused';
+                if (groupBaseGap) groupBaseGap.style.display = 'none';
+                if (connectFontInput) connectFontInput.checked = true;
+            } else {
+                if (attachmentModeSelect) attachmentModeSelect.value = 'gap';
+                if (groupBaseGap) groupBaseGap.style.display = 'block';
+                if (connectFontInput) connectFontInput.checked = false;
             }
             refreshGeometry();
         } else {
@@ -90,7 +95,9 @@ function setupNumberControls(inputId, minusId, plusId) {
         if (inputId === 'base-padding') {
             fitBaseToText();
         } else if (inputId === 'base-gap') {
-            updateConnectionModeUI(false);
+            if (attachmentModeSelect) attachmentModeSelect.value = 'gap';
+            if (groupBaseGap) groupBaseGap.style.display = 'block';
+            if (connectFontInput) connectFontInput.checked = false;
             refreshGeometry();
         } else {
             refreshGeometry();
@@ -123,50 +130,51 @@ function fitBaseToText() {
     refreshGeometry();
 }
 
-// Connection Mode Segmented Controller (Fused vs Clearance Gap)
-function updateConnectionModeUI(isFused) {
+// Font Attachment Mode Handler (Solid Fused vs Clearance Gap)
+function updateAttachmentModeUI() {
+    const isFused = !attachmentModeSelect || (attachmentModeSelect.value === 'fused');
+    if (groupBaseGap) groupBaseGap.style.display = isFused ? 'none' : 'block';
+    if (connectFontInput) connectFontInput.checked = isFused;
     if (isFused) {
-        if (btnModeFused) btnModeFused.classList.add('active');
-        if (btnModeGap) btnModeGap.classList.remove('active');
-        if (groupBaseGap) groupBaseGap.style.display = 'none';
-        if (connectFontInput) connectFontInput.checked = true;
-    } else {
-        if (btnModeFused) btnModeFused.classList.remove('active');
-        if (btnModeGap) btnModeGap.classList.add('active');
-        if (groupBaseGap) groupBaseGap.style.display = 'block';
-        if (connectFontInput) connectFontInput.checked = false;
-    }
-}
-
-if (btnModeFused) {
-    btnModeFused.addEventListener('click', () => {
-        updateConnectionModeUI(true);
         baseGapInput.value = 0;
-        refreshGeometry();
-        saveState();
-    });
-}
-
-if (btnModeGap) {
-    btnModeGap.addEventListener('click', () => {
-        updateConnectionModeUI(false);
+    } else {
         if (parseFloat(baseGapInput.value) <= 0) {
             baseGapInput.value = 2; // Default 2mm gap
         }
-        refreshGeometry();
-        saveState();
-    });
+    }
+    refreshGeometry();
+    saveState();
+}
+
+if (attachmentModeSelect) {
+    attachmentModeSelect.addEventListener('change', updateAttachmentModeUI);
 }
 
 baseGapInput.addEventListener('input', () => {
     const gap = parseFloat(baseGapInput.value) || 0;
-    updateConnectionModeUI(gap <= 0);
+    if (gap <= 0) {
+        if (attachmentModeSelect) attachmentModeSelect.value = 'fused';
+        if (groupBaseGap) groupBaseGap.style.display = 'none';
+        if (connectFontInput) connectFontInput.checked = true;
+    } else {
+        if (attachmentModeSelect) attachmentModeSelect.value = 'gap';
+        if (groupBaseGap) groupBaseGap.style.display = 'block';
+        if (connectFontInput) connectFontInput.checked = false;
+    }
     refreshGeometry();
 });
 
 baseGapInput.addEventListener('change', () => {
     const gap = parseFloat(baseGapInput.value) || 0;
-    updateConnectionModeUI(gap <= 0);
+    if (gap <= 0) {
+        if (attachmentModeSelect) attachmentModeSelect.value = 'fused';
+        if (groupBaseGap) groupBaseGap.style.display = 'none';
+        if (connectFontInput) connectFontInput.checked = true;
+    } else {
+        if (attachmentModeSelect) attachmentModeSelect.value = 'gap';
+        if (groupBaseGap) groupBaseGap.style.display = 'block';
+        if (connectFontInput) connectFontInput.checked = false;
+    }
     refreshGeometry();
     saveState();
 });
@@ -517,7 +525,8 @@ function restoreState(state) {
     if (state.baseGap !== undefined) baseGapInput.value = state.baseGap;
     if (state.baseWidth !== undefined) baseWidthInput.value = state.baseWidth;
     const isFused = (state.connectFont !== undefined ? state.connectFont : true) && (parseFloat(state.baseGap) <= 0 || !state.baseGap);
-    updateConnectionModeUI(isFused);
+    if (attachmentModeSelect) attachmentModeSelect.value = isFused ? 'fused' : 'gap';
+    if (groupBaseGap) groupBaseGap.style.display = isFused ? 'none' : 'block';
     basePaddingInput.value = state.basePadding;
     baseHeightInput.value = state.baseHeight;
     baseDepthInput.value = state.baseDepth;
@@ -806,11 +815,11 @@ function refreshGeometry() {
     const targetY = includeBase ? baseHeight : 0;
     
     // Connect & Gap logic
-    const baseGap = Math.max(0, parseFloat(baseGapInput.value) || 0);
-    const isConnected = includeBase && connectFontInput.checked && baseGap <= 0;
-    // When connected, sink 0.5mm into base so it fuses properly for 3D printing.
-    // When a gap is specified, elevate text so the bottom sits exactly baseGap mm above the top of base.
-    const gapOffset = includeBase ? (isConnected ? -0.5 : baseGap) : 0; 
+    const isFused = !attachmentModeSelect || (attachmentModeSelect.value === 'fused');
+    const baseGap = isFused ? 0 : Math.max(0, parseFloat(baseGapInput.value) || 0);
+    // When connected (fused): sink 0.5mm into base so it fuses properly for 3D printing.
+    // When a gap is specified: elevate text so the bottom sits exactly baseGap mm above the top of base.
+    const gapOffset = includeBase ? (isFused ? -0.5 : baseGap) : 0; 
     
     textGroup.position.y = targetY - baselineOffset + gapOffset + manualYOffset;
 
@@ -916,7 +925,8 @@ document.getElementById('reset-defaults').addEventListener('click', () => {
     includeBaseInput.checked = true;
     connectFontInput.checked = true;
     baseGapInput.value = 0;
-    updateConnectionModeUI(true);
+    if (attachmentModeSelect) attachmentModeSelect.value = 'fused';
+    if (groupBaseGap) groupBaseGap.style.display = 'none';
     baseWidthInput.value = 170;
     basePaddingInput.value = 12;
     baseHeightInput.value = 5;
