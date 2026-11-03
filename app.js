@@ -1045,9 +1045,9 @@ function setCameraAngle(viewName) {
             break;
     }
     
-    // Update active highlight on quick view chips
-    document.querySelectorAll('.view-chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.view === viewName);
+    // Highlight active ViewCube face
+    document.querySelectorAll('.cube-face').forEach(face => {
+        face.classList.toggle('active', face.dataset.view === viewName);
     });
     
     // Smooth camera tween
@@ -1072,15 +1072,6 @@ document.querySelectorAll('.cube-face').forEach(face => {
     });
 });
 
-// Wire up Quick View Chip buttons
-document.querySelectorAll('.view-chip').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const view = btn.getAttribute('data-view');
-        if (view) setCameraAngle(view);
-    });
-});
-
 const btnViewIso = document.getElementById('btn-view-iso');
 if (btnViewIso) {
     btnViewIso.addEventListener('click', (e) => {
@@ -1091,7 +1082,7 @@ if (btnViewIso) {
 
 controls.addEventListener('start', () => {
     cameraTween = null;
-    document.querySelectorAll('.view-chip').forEach(chip => chip.classList.remove('active'));
+    document.querySelectorAll('.cube-face').forEach(face => face.classList.remove('active'));
 });
 
 function updateViewCube() {
