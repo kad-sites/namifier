@@ -987,10 +987,155 @@ textEdgeStyleSelect.addEventListener('input', refreshGeometry);
 
 exportBtn.addEventListener('click', exportSTL);
 
+// --- ViewCube & Camera Angle Presets ---
+const viewCubeEl = document.getElementById('viewcube');
+let cameraTween = null;
+
+function setCameraAngle(viewName) {
+    // Measure current model bounds to frame it perfectly
+    mainGroup.position.set(0, 0, 0);
+    mainGroup.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(mainGroup);
+    
+    const sizeX = isFinite(box.max.x - box.min.x) ? (box.max.x - box.min.x) : 150;
+    const sizeY = isFinite(box.max.y - box.min.y) ? (box.max.y - box.min.y) : 50;
+    const sizeZ = isFinite(box.max.z - box.min.z) ? (box.max.z - box.min.z) : 30;
+    
+    const centerY = sizeY / 2;
+    const target = new THREE.Vector3(0, centerY, 0);
+    
+    // Fit distance based on largest dimension
+    const maxDim = Math.max(sizeX, sizeY, sizeZ, 100);
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const fitDist = (maxDim / (2 * Math.tan(fovRad / 2))) * 1.35;
+    
+    const destPos = new THREE.Vector3();
+    const destUp = new THREE.Vector3(0, 1, 0);
+    
+    switch (viewName) {
+        case 'front':
+            // 2D flat front elevation view
+            destPos.set(0, centerY, fitDist);
+            break;
+        case 'back':
+            destPos.set(0, centerY, -fitDist);
+            break;
+        case 'top':
+            // 2D flat plan view from directly above
+            destPos.set(0, centerY + fitDist, 0.0001);
+            destUp.set(0, 0, -1);
+            break;
+        case 'bottom':
+            // Flat view from underneath base
+            destPos.set(0, centerY - fitDist, 0.0001);
+            destUp.set(0, 0, 1);
+            break;
+        case 'right':
+            // Right side profile view
+            destPos.set(fitDist, centerY, 0);
+            break;
+        case 'left':
+            // Left side profile view
+            destPos.set(-fitDist, centerY, 0);
+            break;
+        case 'iso':
+        default:
+            // 3D Isometric / 3/4 Perspective
+            destPos.set(fitDist * 0.65, centerY + fitDist * 0.55, fitDist * 0.85);
+            break;
+    }
+    
+    // Update active highlight on quick view chips
+    document.querySelectorAll('.view-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.view === viewName);
+    });
+    
+    // Smooth camera tween
+    cameraTween = {
+        startTime: performance.now(),
+        duration: 320,
+        startPos: camera.position.clone(),
+        endPos: destPos,
+        startTarget: controls.target.clone(),
+        endTarget: target,
+        startUp: camera.up.clone(),
+        endUp: destUp
+    };
+}
+
+// Wire up ViewCube face clicks
+document.querySelectorAll('.cube-face').forEach(face => {
+    face.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const view = face.getAttribute('data-view');
+        if (view) setCameraAngle(view);
+    });
+});
+
+// Wire up Quick View Chip buttons
+document.querySelectorAll('.view-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const view = btn.getAttribute('data-view');
+        if (view) setCameraAngle(view);
+    });
+});
+
+const btnViewIso = document.getElementById('btn-view-iso');
+if (btnViewIso) {
+    btnViewIso.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setCameraAngle('iso');
+    });
+}
+
+controls.addEventListener('start', () => {
+    cameraTween = null;
+    document.querySelectorAll('.view-chip').forEach(chip => chip.classList.remove('active'));
+});
+
+function updateViewCube() {
+    if (!viewCubeEl) return;
+    
+    const m = camera.matrixWorldInverse.elements;
+    
+    const c00 = m[0].toFixed(5);
+    const c01 = (-m[1]).toFixed(5);
+    const c02 = m[2].toFixed(5);
+    
+    const c10 = (-m[4]).toFixed(5);
+    const c11 = m[5].toFixed(5);
+    const c12 = (-m[6]).toFixed(5);
+    
+    const c20 = m[8].toFixed(5);
+    const c21 = (-m[9]).toFixed(5);
+    const c22 = m[10].toFixed(5);
+    
+    viewCubeEl.style.transform = `matrix3d(${c00}, ${c01}, ${c02}, 0, ${c10}, ${c11}, ${c12}, 0, ${c20}, ${c21}, ${c22}, 0, 0, 0, 0, 1)`;
+}
+
 // Animation Loop
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
+    
+    if (cameraTween) {
+        const elapsed = performance.now() - cameraTween.startTime;
+        const progress = Math.min(1, elapsed / cameraTween.duration);
+        const ease = progress * progress * (3 - 2 * progress);
+        
+        camera.position.lerpVectors(cameraTween.startPos, cameraTween.endPos, ease);
+        controls.target.lerpVectors(cameraTween.startTarget, cameraTween.endTarget, ease);
+        camera.up.lerpVectors(cameraTween.startUp, cameraTween.endUp, ease);
+        controls.update();
+        
+        if (progress >= 1) {
+            cameraTween = null;
+        }
+    } else {
+        controls.update();
+    }
+    
+    updateViewCube();
     renderer.render(scene, camera);
 }
 

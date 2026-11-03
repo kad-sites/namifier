@@ -525,3 +525,150 @@ input[type="text"]:focus, select:focus, input[type="number"]:focus, .number-inpu
     transform: translateY(-2px);
     background: var(--accent-hover);
 }
+
+/* View Preset Widget (Top Right of 3D Canvas) */
+.view-preset-widget {
+    position: absolute;
+    top: 75px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 40;
+    pointer-events: auto;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.right-sidebar.open ~ .canvas-wrapper .view-preset-widget {
+    right: 360px;
+}
+
+/* 3D Interactive ViewCube */
+.viewcube-wrapper {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    perspective: 320px;
+    user-select: none;
+}
+
+.viewcube-nav-home {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 22px;
+    height: 22px;
+    background: rgba(28, 28, 30, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    z-index: 30;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.viewcube-nav-home:hover {
+    color: #ffffff;
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+.viewcube {
+    width: 48px;
+    height: 48px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    transform-style: preserve-3d;
+    transform-origin: 24px 24px -24px;
+    pointer-events: auto;
+}
+
+.cube-face {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    background: rgba(28, 28, 32, 0.88);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #cbd5e1;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.cube-face:hover {
+    background: var(--accent);
+    border-color: #93c5fd;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(10, 132, 255, 0.6);
+}
+
+.cube-front  { transform: rotateY(0deg) translateZ(24px); }
+.cube-back   { transform: rotateY(180deg) translateZ(24px); }
+.cube-right  { transform: rotateY(90deg) translateZ(24px); }
+.cube-left   { transform: rotateY(-90deg) translateZ(24px); }
+.cube-top    { transform: rotateX(90deg) translateZ(24px); }
+.cube-bottom { transform: rotateX(-90deg) translateZ(24px); }
+
+/* Quick View Angle Buttons Bar */
+.view-buttons-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: rgba(20, 20, 24, 0.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    width: 82px;
+}
+
+.view-chip {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.view-chip:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.view-chip.active {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.view-chip-icon {
+    font-size: 11px;
+    line-height: 1;
+}

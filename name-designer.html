@@ -402,6 +402,47 @@
                 <button id="reset-defaults" class="floating-btn reset-btn">↺ Reset</button>
                 <button id="open-beautify" class="floating-btn">✨ Beautify Settings</button>
             </div>
+
+            <!-- View Orientation Widget & Quick View Bar -->
+            <div class="view-preset-widget">
+                <!-- 3D Interactive ViewCube -->
+                <div class="viewcube-wrapper" title="Interactive 3D Orientation Cube - Click any face to snap view">
+                    <button type="button" class="viewcube-nav-home" id="btn-view-iso" title="Reset to 3D Perspective">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                    </button>
+                    <div class="viewcube" id="viewcube">
+                        <div class="cube-face cube-front" data-view="front">FRONT</div>
+                        <div class="cube-face cube-back" data-view="back">BACK</div>
+                        <div class="cube-face cube-top" data-view="top">TOP</div>
+                        <div class="cube-face cube-bottom" data-view="bottom">BTM</div>
+                        <div class="cube-face cube-left" data-view="left">LEFT</div>
+                        <div class="cube-face cube-right" data-view="right">RIGHT</div>
+                    </div>
+                </div>
+
+                <!-- Quick View Angle Bar -->
+                <div class="view-buttons-bar">
+                    <button type="button" class="view-chip active" id="chip-view-3d" data-view="iso" title="3D Isometric Perspective">
+                        <span class="view-chip-icon">🧊</span> 3D
+                    </button>
+                    <button type="button" class="view-chip" id="chip-view-front" data-view="front" title="2D Flat Front View (Elevation)">
+                        <span class="view-chip-icon">👁️</span> Front
+                    </button>
+                    <button type="button" class="view-chip" id="chip-view-top" data-view="top" title="2D Flat Top View (Plan)">
+                        <span class="view-chip-icon">⬆️</span> Top
+                    </button>
+                    <button type="button" class="view-chip" id="chip-view-right" data-view="right" title="Right Side Profile">
+                        <span class="view-chip-icon">➡️</span> Right
+                    </button>
+                    <button type="button" class="view-chip" id="chip-view-left" data-view="left" title="Left Side Profile">
+                        <span class="view-chip-icon">⬅️</span> Left
+                    </button>
+                    <button type="button" class="view-chip" id="chip-view-bottom" data-view="bottom" title="Bottom View (Under Base)">
+                        <span class="view-chip-icon">⬇️</span> Bottom
+                    </button>
+                </div>
+            </div>
+
             <div id="canvas-container"></div>
             <div class="canvas-controls">
                 <button class="view-btn">-</button>
