@@ -192,10 +192,44 @@
                         </div>
                         
                         <div id="base-options">
+                            <!-- Connect & Gap Options -->
+                            <div class="control-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="connect-font" checked>
+                                    Connect to Font <span class="help-text">Fuse font and base together</span>
+                                </label>
+                            </div>
+
+                            <div class="control-group" id="group-base-gap">
+                                <label>Base-to-Font Gap (mm) <span class="help-text">Clearance gap between base and font:</span></label>
+                                <div class="number-input">
+                                    <input type="number" id="base-gap" value="0" min="0" max="50" step="1">
+                                    <div class="number-controls">
+                                        <button id="gap-minus">-</button>
+                                        <button id="gap-plus">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Independent Base Width (X) -->
+                            <div class="control-group" id="group-base-width">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="margin: 0;">Base Width (X) <span class="help-text">Width in mm:</span></label>
+                                    <button type="button" id="btn-fit-base" style="background: none; border: none; color: var(--accent); font-size: 11px; cursor: pointer; padding: 0; text-decoration: underline;">Fit to Text</button>
+                                </div>
+                                <div class="number-input">
+                                    <input type="number" id="base-width" value="170" min="10" max="600" step="1">
+                                    <div class="number-controls">
+                                        <button id="basew-minus">-</button>
+                                        <button id="basew-plus">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="control-group">
                                 <label>Base Padding (mm) <span class="help-text">Extra size around text:</span></label>
                                 <div class="number-input">
-                                    <input type="number" id="base-padding" value="10" min="0" max="50" step="1">
+                                    <input type="number" id="base-padding" value="12" min="0" max="50" step="1">
                                     <div class="number-controls">
                                         <button id="pad-minus">-</button>
                                         <button id="pad-plus">+</button>

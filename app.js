@@ -20,6 +20,10 @@ const targetWidthInput = document.getElementById('target-width');
 const targetHeightInput = document.getElementById('target-height');
 const includeBaseInput = document.getElementById('include-base');
 const baseOptions = document.getElementById('base-options');
+const connectFontInput = document.getElementById('connect-font');
+const baseGapInput = document.getElementById('base-gap');
+const baseWidthInput = document.getElementById('base-width');
+const btnFitBase = document.getElementById('btn-fit-base');
 const basePaddingInput = document.getElementById('base-padding');
 const baseHeightInput = document.getElementById('base-height');
 const baseDepthInput = document.getElementById('base-depth');
@@ -78,11 +82,65 @@ setupNumberControls('text-thickness', 'thickness-minus', 'thickness-plus');
 setupNumberControls('text-y-offset', 'yoffset-minus', 'yoffset-plus');
 setupNumberControls('target-width', 'width-minus', 'width-plus');
 setupNumberControls('target-height', 'height-minus', 'height-plus');
+setupNumberControls('base-gap', 'gap-minus', 'gap-plus');
+setupNumberControls('base-width', 'basew-minus', 'basew-plus');
 setupNumberControls('base-padding', 'pad-minus', 'pad-plus');
 setupNumberControls('base-height', 'baseh-minus', 'baseh-plus');
 setupNumberControls('base-depth', 'based-minus', 'based-plus');
 setupNumberControls('base-edge-radius', 'edgerad-minus', 'edgerad-plus');
 setupNumberControls('text-edge-radius', 'textrad-minus', 'textrad-plus');
+
+function fitBaseToText() {
+    textGroup.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(textGroup);
+    const textWidth = isFinite(box.min.x) ? (box.max.x - box.min.x) : 0;
+    const padding = parseFloat(basePaddingInput.value) || 0;
+    if (textWidth > 0) {
+        baseWidthInput.value = Math.max(10, Math.round(textWidth + (padding * 2)));
+    }
+    refreshGeometry();
+}
+
+// Connect & Gap Event Handlers
+connectFontInput.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        baseGapInput.value = 0;
+    } else {
+        if (parseFloat(baseGapInput.value) <= 0) {
+            baseGapInput.value = 2; // Default 2mm gap when disconnected
+        }
+    }
+    refreshGeometry();
+    saveState();
+});
+
+baseGapInput.addEventListener('input', () => {
+    const gap = parseFloat(baseGapInput.value) || 0;
+    connectFontInput.checked = (gap <= 0);
+    refreshGeometry();
+});
+
+baseGapInput.addEventListener('change', () => {
+    const gap = parseFloat(baseGapInput.value) || 0;
+    connectFontInput.checked = (gap <= 0);
+    refreshGeometry();
+    saveState();
+});
+
+baseWidthInput.addEventListener('input', refreshGeometry);
+baseWidthInput.addEventListener('change', saveState);
+
+basePaddingInput.addEventListener('input', () => {
+    fitBaseToText();
+});
+
+if (btnFitBase) {
+    btnFitBase.addEventListener('click', (e) => {
+        e.preventDefault();
+        fitBaseToText();
+        saveState();
+    });
+}
 
 // Toggle base options visibility
 includeBaseInput.addEventListener('change', (e) => {
@@ -346,6 +404,9 @@ function saveState() {
         targetHeight: targetHeightInput.value,
         textSize: textSizeInput.value,
         includeBase: includeBaseInput.checked,
+        connectFont: connectFontInput.checked,
+        baseGap: baseGapInput.value,
+        baseWidth: baseWidthInput.value,
         basePadding: basePaddingInput.value,
         baseHeight: baseHeightInput.value,
         baseDepth: baseDepthInput.value,
@@ -408,6 +469,9 @@ function restoreState(state) {
     targetHeightInput.value = state.targetHeight;
     textSizeInput.value = state.textSize;
     includeBaseInput.checked = state.includeBase;
+    if (state.connectFont !== undefined) connectFontInput.checked = state.connectFont;
+    if (state.baseGap !== undefined) baseGapInput.value = state.baseGap;
+    if (state.baseWidth !== undefined) baseWidthInput.value = state.baseWidth;
     basePaddingInput.value = state.basePadding;
     baseHeightInput.value = state.baseHeight;
     baseDepthInput.value = state.baseDepth;
@@ -694,21 +758,22 @@ function refreshGeometry() {
     
     // Sit the text group on top of the base
     const targetY = includeBase ? baseHeight : 0;
-    // Sink it 0.5mm into the base so it fuses properly for 3D printing
-    const printOverlap = includeBase ? 0.5 : 0; 
     
-    textGroup.position.y = targetY - baselineOffset - printOverlap + manualYOffset;
+    // Connect & Gap logic
+    const baseGap = Math.max(0, parseFloat(baseGapInput.value) || 0);
+    const isConnected = includeBase && connectFontInput.checked && baseGap <= 0;
+    // When connected, sink 0.5mm into base so it fuses properly for 3D printing.
+    // When a gap is specified, elevate text so the bottom sits exactly baseGap mm above the top of base.
+    const gapOffset = includeBase ? (isConnected ? -0.5 : baseGap) : 0; 
+    
+    textGroup.position.y = targetY - baselineOffset + gapOffset + manualYOffset;
 
     // Create Base Geometry
     if (includeBase) {
         baseMesh.visible = true;
         
-        // Measure text size again now that it's laid out
-        textGroup.updateMatrixWorld(true);
-        const finalBox = new THREE.Box3().setFromObject(textGroup);
-        const textWidth = isFinite(finalBox.min.x) ? (finalBox.max.x - finalBox.min.x) : 0;
-        
-        const baseWidth = textWidth + (basePadding * 2);
+        // Base width is independent of font target width!
+        const baseWidth = Math.max(5, parseFloat(baseWidthInput.value) || 170);
         
         let baseGeo;
         if (edgeStyle === 'none' || edgeRadius <= 0) {
@@ -803,7 +868,10 @@ document.getElementById('reset-defaults').addEventListener('click', () => {
     targetHeightInput.value = 50;
     textSizeInput.value = 50;
     includeBaseInput.checked = true;
-    basePaddingInput.value = 10;
+    connectFontInput.checked = true;
+    baseGapInput.value = 0;
+    baseWidthInput.value = 170;
+    basePaddingInput.value = 12;
     baseHeightInput.value = 5;
     baseDepthInput.value = 30;
     letterSpacingInput.value = 0;
@@ -835,6 +903,9 @@ textThicknessInput.addEventListener('change', saveState);
 targetWidthInput.addEventListener('change', saveState);
 targetHeightInput.addEventListener('change', saveState);
 includeBaseInput.addEventListener('change', saveState);
+connectFontInput.addEventListener('change', saveState);
+baseGapInput.addEventListener('change', saveState);
+baseWidthInput.addEventListener('change', saveState);
 basePaddingInput.addEventListener('change', saveState);
 baseHeightInput.addEventListener('change', saveState);
 baseDepthInput.addEventListener('change', saveState);
